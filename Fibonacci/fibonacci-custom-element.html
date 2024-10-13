@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fibonacci Calculator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+    <div>
+        <h1>Fibonacci Calculator</h1>
+        <fibonacci-calc></fibonacci-calc>
+    </div>
+    <script>
+        class FibonacciCalc extends HTMLElement {
+            constructor() {
+                super();
+                this.attachShadow({ mode: 'open' });
+                this.shadowRoot.innerHTML = `
+                    <style>
+                        :host {
+                            display: block;
+                            font-family: Arial, sans-serif;
+                            padding: 20px;
+                            border: 1px solid #ccc;
+                            border-radius: 5px;
+                            background-color: white;
+                        }
+                        input, button {
+                            margin: 5px;
+                            padding: 5px;
+                        }
+                        button {
+                            background-color: #4CAF50;
+                            color: white;
+                            border: none;
+                            cursor: pointer;
+                        }
+                        button:hover {
+                            background-color: #45a049;
+                        }
+                        #result, #sequence {
+                            margin-top: 10px;
+                            font-weight: bold;
+                        }
+                        #sequence {
+                            max-height: 150px;
+                            overflow-y: auto;
+                            border: 1px solid #ddd;
+                            padding: 10px;
+                        }
+                    </style>
+                    <input type="number" id="n" placeholder="Enter a number (n)">
+                    <button id="calculate">Calculate Fibonacci</button>
+                    <div id="result"></div>
+                    <div id="sequence"></div>
+                `;
+                this.calculateFibonacci = this.calculateFibonacci.bind(this);
+            }
+            
+            connectedCallback() {
+                this.shadowRoot.getElementById('calculate').addEventListener('click', this.calculateFibonacci);
+            }
+            
+            disconnectedCallback() {
+                this.shadowRoot.getElementById('calculate').removeEventListener('click', this.calculateFibonacci);
+            }
+            
+            calculateFibonacci() {
+                const n = parseInt(this.shadowRoot.getElementById('n').value);
+                
+                if (isNaN(n) || n < 0) {
+                    this.shadowRoot.getElementById('result').textContent = 'Please enter a valid non-negative number';
+                    this.shadowRoot.getElementById('sequence').textContent = '';
+                    return;
+                }
+                
+                const [fib, sequence] = this.fibonacci(n);
+                this.shadowRoot.getElementById('result').textContent = `The ${n}th Fibonacci number is ${fib}`;
+                this.shadowRoot.getElementById('sequence').textContent = `Fibonacci Sequence: ${sequence.join(', ')}`;
+            }
+            
+            fibonacci(n) {
+                let sequence = [0, 1];
+                if (n <= 1) return [n, sequence.slice(0, n + 1)];
+                
+                for (let i = 2; i <= n; i++) {
+                    sequence[i] = sequence[i-1] + sequence[i-2];
+                }
+                return [sequence[n], sequence];
+            }
+        }
+        
+        customElements.define('fibonacci-calc', FibonacciCalc);
+    </script>
+</body>
+</html>
