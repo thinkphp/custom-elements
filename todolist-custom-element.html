@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enhanced Todo List with Web Components</title>
+</head>
+<body>
+    <h1>Enhanced Todo List</h1>
+    <todo-list></todo-list>
+
+    <script>
+        class TodoItem extends HTMLElement {
+            constructor() {
+                super();
+                this.attachShadow({ mode: 'open' });
+            }
+
+            connectedCallback() {
+                this.render();
+                this.setupEventListeners();
+            }
+
+            setupEventListeners() {
+                this.shadowRoot.querySelector('.todo-text').addEventListener('click', () => this.toggleEditMode());
+                this.shadowRoot.querySelector('.remove-btn').addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    this.dispatchEvent(new CustomEvent('removeItem', { bubbles: true, composed: true }));
+                });
+                this.shadowRoot.querySelector('.todo-checkbox').addEventListener('change', (e) => {
+                    e.stopPropagation();
+                    this.toggleComplete(e.target.checked);
+                });
+            }
+
+            static get observedAttributes() {
+                return ['text', 'completed'];
+            }
+
+            attributeChangedCallback(name, oldValue, newValue) {
+                if (oldValue !== newValue) {
+                    this.render();
+                }
+            }
+
+            toggleEditMode() {
+                const textElement = this.shadowRoot.querySelector('.todo-text');
+                if (textElement.contentEditable !== 'true') {
+                    textElement.contentEditable = 'true';
+                    textElement.focus();
+                    const range = document.createRange();
+                    range.selectNodeContents(textElement);
+                    const selection = window.getSelection();
+                    selection.removeAllRanges();
+                    selection.addRange(range);
+
+                    const handleBlur = () => {
+                        textElement.contentEditable = 'false';
+                        this.setAttribute('text', textElement.textContent);
+                        textElement.removeEventListener('blur', handleBlur);
+                    };
+
+                    textElement.addEventListener('blur', handleBlur);
+                }
+            }
+
+            toggleComplete(completed) {
+                this.setAttribute('completed', completed);
+            }
+
+            render() {
+                const text = this.getAttribute('text') || 'New Todo';
+                const completed = this.getAttribute('completed') === 'true';
+
+                this.shadowRoot.innerHTML = `
+                    <style>
+                        :host {
+                            display: block;
+                            margin: 10px 0;
+                            font-family: Arial, sans-serif;
+                        }
+                        .todo-item {
+                            display: flex;
+                            align-items: center;
+                            padding: 10px;
+                            background-color: #f9f9f9;
+                            border-radius: 5px;
+                            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+                        }
+                        .todo-checkbox {
+                            margin-right: 10px;
+                        }
+                        .todo-text {
+                            flex-grow: 1;
+                            margin-right: 10px;
+                            cursor: pointer;
+                            text-decoration: ${completed ? 'line-through' : 'none'};
+                            color: ${completed ? '#888' : '#000'};
+                        }
+                        .remove-btn {
+                            background-color: #ff4d4d;
+                            color: white;
+                            border: none;
+                            padding: 5px 10px;
+                            border-radius: 3px;
+                            cursor: pointer;
+                        }
+                        .remove-btn:hover {
+                            background-color: #ff3333;
+                        }
+                    </style>
+                    <div class="todo-item">
+                        <input type="checkbox" class="todo-checkbox" ${completed ? 'checked' : ''}>
+                        <span class="todo-text">${text}</span>
+                        <button class="remove-btn">Remove</button>
+                    </div>
+                `;
+                this.setupEventListeners();
+            }
+        }
+
+        customElements.define('todo-item', TodoItem);
+
+        class TodoList extends HTMLElement {
+            constructor() {
+                super();
+                this.attachShadow({ mode: 'open' });
+            }
+
+            connectedCallback() {
+                this.render();
+                this.setupEventListeners();
+            }
+
+            setupEventListeners() {
+                this.shadowRoot.querySelector('#add-todo-btn').addEventListener('click', () => this.addTodo());
+                this.shadowRoot.querySelector('#todo-input').addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') {
+                        this.addTodo();
+                    }
+                });
+                this.shadowRoot.querySelector('#todo-list').addEventListener('removeItem', (e) => {
+                    e.target.remove();
+                });
+            }
+
+            addTodo() {
+                const input = this.shadowRoot.querySelector('#todo-input');
+                const text = input.value.trim();
+                if (text) {
+                    const todoItem = document.createElement('todo-item');
+                    todoItem.setAttribute('text', text);
+                    this.shadowRoot.querySelector('#todo-list').appendChild(todoItem);
+                    input.value = '';
+                }
+            }
+
+            render() {
+                this.shadowRoot.innerHTML = `
+                    <style>
+                        :host {
+                            display: block;
+                            font-family: Arial, sans-serif;
+                            max-width: 500px;
+                            margin: 0 auto;
+                        }
+                        .todo-container {
+                            background-color: #ffffff;
+                            padding: 20px;
+                            border-radius: 8px;
+                            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+                        }
+                        .input-container {
+                            display: flex;
+                            margin-bottom: 20px;
+                        }
+                        #todo-input {
+                            flex-grow: 1;
+                            padding: 10px;
+                            font-size: 16px;
+                            border: 1px solid #ddd;
+                            border-radius: 4px 0 0 4px;
+                        }
+                        #add-todo-btn {
+                            padding: 10px 20px;
+                            font-size: 16px;
+                            background-color: #4CAF50;
+                            color: white;
+                            border: none;
+                            border-radius: 0 4px 4px 0;
+                            cursor: pointer;
+                        }
+                        #add-todo-btn:hover {
+                            background-color: #45a049;
+                        }
+                    </style>
+                    <div class="todo-container">
+                        <div class="input-container">
+                            <input type="text" id="todo-input" placeholder="Enter a new todo">
+                            <button id="add-todo-btn">Add</button>
+                        </div>
+                        <div id="todo-list"></div>
+                    </div>
+                `;
+            }
+        }
+
+        customElements.define('todo-list', TodoList);
+    </script>
+</body>
+</html>
